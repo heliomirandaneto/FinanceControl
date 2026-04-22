@@ -428,6 +428,12 @@ function cleanDesc(desc, cat){
     const m=desc.match(/zelle payment to\s+([A-Za-z ]+?)(?:\s+Conf#|\s*$)/i);
     if(m){const name=m[1].trim().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');return 'Zelle para '+name;}
   }
+  if(cat==='cartao'){
+    if(/mobile banking payment to crd\s*7299/i.test(desc))return'Pagamento Cartão Malu';
+    if(/mobile banking payment to crd\s*2413/i.test(desc))return'Pagamento Cartão Helio';
+    if(/online scheduled payment to acct#?\s*7299/i.test(desc))return'Pagamento Cartão Malu';
+    if(/online scheduled payment to acct#?\s*2413/i.test(desc))return'Pagamento Cartão Helio';
+  }
   return desc;
 }
 
