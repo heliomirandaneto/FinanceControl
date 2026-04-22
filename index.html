@@ -63,6 +63,14 @@
   </div>
 </header>
 
+<!-- SOURCE FILTER BAR -->
+<div id="source-filter-bar" class="hidden bg-white border-b border-gray-100 sticky top-14 z-30">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-2 flex-wrap">
+    <span class="text-xs text-gray-400 font-medium mr-1">Ver:</span>
+    <div id="source-pills" class="flex gap-2 flex-wrap"></div>
+  </div>
+</div>
+
 <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
   <!-- ===== UPLOAD ===== -->
@@ -440,7 +448,7 @@ function classifyIncome(desc){
 }
 
 // ─── STATE ─────────────────────────────────────────────────────
-let txs=[], txPage=0, filtered=[], pending=null, txSort={col:'date',dir:-1}, learnedRules={};
+let txs=[], txPage=0, filtered=[], pending=null, txSort={col:'date',dir:-1}, learnedRules={}, activeSource='';
 const PAGE=50, charts={};
 
 function load(){
@@ -461,6 +469,7 @@ function updateBadge(){
     cs.classList.remove('hidden');ss.classList.remove('hidden');
     document.getElementById('clear-label').textContent=txs.length+' transações importadas';
   }else{b.classList.add('hidden');cs.classList.add('hidden');ss.classList.add('hidden')}
+  renderSourceFilter();
 }
 
 // ─── UTILS ─────────────────────────────────────────────────────
@@ -502,6 +511,7 @@ function getActiveTxs(){
   const cards=new Set(txs.filter(t=>t.source&&t.source.startsWith('card_')).map(t=>t.source.slice(5)));
   return txs.filter(t=>{
     if(t.type==='income')return false;
+    if(activeSource&&t.source!==activeSource)return false;
     if(t.source&&t.source.startsWith('card_'))return true;
     const d=(t.desc||'').toLowerCase();
     for(const c of cards)if(d.includes('crd '+c)||d.includes('acct# '+c)||d.includes('acct '+c))return false;
@@ -909,6 +919,35 @@ function confirmImport(){
   });
   finishImport(newTxs,pending.filename);
   closeModal();
+}
+
+// ─── SOURCE FILTER ─────────────────────────────────────────────
+function renderSourceFilter(){
+  const sources=[...new Set(txs.filter(t=>t.type!=='income').map(t=>t.source||'bank'))];
+  const bar=document.getElementById('source-filter-bar');
+  if(sources.length<=1){bar.classList.add('hidden');return;}
+  bar.classList.remove('hidden');
+  function sourceLabel(s){
+    if(s==='bank')return'🏦 Conta Banco';
+    const last4=s.replace('card_','');
+    return`💳 Cartão ...${last4}`;
+  }
+  const pills=document.getElementById('source-pills');
+  const all=[''].concat(sources);
+  pills.innerHTML=all.map(s=>{
+    const active=activeSource===s;
+    const cls=active
+      ?'px-3 py-1 rounded-full text-xs font-semibold bg-indigo-600 text-white cursor-pointer'
+      :'px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 cursor-pointer';
+    const label=s===''?'Todos':sourceLabel(s);
+    return`<span class="${cls}" onclick="setSource('${s}')">${label}</span>`;
+  }).join('');
+}
+function setSource(s){
+  activeSource=s;
+  renderSourceFilter();
+  const at=document.querySelector('.tab-active')?.dataset?.tab;
+  if(at&&at!=='upload')setTab(at);
 }
 
 // ─── TAB NAVIGATION ────────────────────────────────────────────
