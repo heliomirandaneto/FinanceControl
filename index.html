@@ -8,6 +8,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
   .tab-active{color:#4f46e5;border-bottom:2px solid #4f46e5}
@@ -24,6 +26,23 @@
 </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-gray-800">
+
+<!-- FAMILY CODE MODAL -->
+<div id="family-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-xl">
+    <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-indigo-100 flex items-center justify-center">
+      <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </div>
+    <h2 class="text-xl font-semibold text-gray-900 text-center mb-1">Código familiar</h2>
+    <p class="text-sm text-gray-500 text-center mb-6">Crie ou entre com um código para sincronizar os dados entre vocês dois.</p>
+    <input id="family-code-input" type="text" placeholder="ex: miranda2024" maxlength="30"
+      onkeydown="if(event.key==='Enter')submitFamilyCode()"
+      class="w-full border border-gray-300 rounded-xl px-4 py-3 text-center text-lg font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-2">
+    <p id="family-code-error" class="text-sm text-red-500 text-center mb-3 hidden">Mínimo 4 caracteres</p>
+    <button onclick="submitFamilyCode()" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition">Entrar</button>
+    <p class="text-xs text-gray-400 text-center mt-4">Use o mesmo código nos dois dispositivos para sincronizar os dados.</p>
+  </div>
+</div>
 
 <!-- HEADER -->
 <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
@@ -287,6 +306,53 @@
 </div>
 
 <script>
+// ─── FIREBASE ──────────────────────────────────────────────────
+firebase.initializeApp({
+  apiKey:"AIzaSyBSl4xPUb-WgW1lzxuyWOkwJC1KBvbW1Oc",
+  authDomain:"financecontrol-e98fd.firebaseapp.com",
+  projectId:"financecontrol-e98fd",
+  storageBucket:"financecontrol-e98fd.firebasestorage.app",
+  messagingSenderId:"1006631835866",
+  appId:"1:1006631835866:web:514665bc5ad8debf226de3"
+});
+const db=firebase.firestore();
+let familyCode=null, fbUnsub=null;
+
+function getFamilyDoc(){return db.collection('households').doc(familyCode)}
+
+async function connectFirebase(code){
+  familyCode=code;
+  localStorage.setItem('fd_family_code',code);
+  document.getElementById('family-modal').classList.add('hidden');
+  const snap=await getFamilyDoc().get();
+  if(snap.exists){
+    const d=snap.data();
+    if(d.txs)txs=d.txs;
+    if(d.rules)learnedRules=d.rules;
+    if(d.cats)d.cats.forEach(c=>{if(!CATS.find(x=>x.id===c.id))CATS.push(c);else{const x=CATS.find(x=>x.id===c.id);x.name=c.name;x.color=c.color;}});
+  }
+  if(fbUnsub)fbUnsub();
+  fbUnsub=getFamilyDoc().onSnapshot(snap=>{
+    if(snap.metadata.hasPendingWrites||!snap.exists)return;
+    const d=snap.data();
+    if(d.txs)txs=d.txs;
+    if(d.rules)learnedRules=d.rules;
+    if(d.cats)d.cats.forEach(c=>{if(!CATS.find(x=>x.id===c.id))CATS.push(c);else{const x=CATS.find(x=>x.id===c.id);x.name=c.name;x.color=c.color;}});
+    updateBadge();renderCatsList();
+    const at=document.querySelector('.tab-active')?.dataset?.tab;
+    if(at&&at!=='upload')setTab(at);
+  });
+  updateBadge();renderCatsList();
+  setTab(txs.length?'dashboard':'upload');
+}
+
+function submitFamilyCode(){
+  const v=document.getElementById('family-code-input').value.trim().toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(v.length<4){document.getElementById('family-code-error').classList.remove('hidden');return;}
+  document.getElementById('family-code-error').classList.add('hidden');
+  connectFirebase(v);
+}
+
 // ─── CATEGORIES ────────────────────────────────────────────────
 let CATS = [
   {id:'restaurantes', name:'Restaurantes', color:'#EF4444'},
@@ -369,9 +435,10 @@ function load(){
   try{const r=localStorage.getItem('fd_rules');if(r)learnedRules=JSON.parse(r)}catch(e){learnedRules={}}
   try{const c=localStorage.getItem('fd_cats');if(c)JSON.parse(c).forEach(c=>{if(!CATS.find(x=>x.id===c.id))CATS.push(c);else{const x=CATS.find(x=>x.id===c.id);x.name=c.name;x.color=c.color;}})}catch(e){}
 }
-function saveCats(){localStorage.setItem('fd_cats',JSON.stringify(CATS));}
-function save(){localStorage.setItem('fd_txs',JSON.stringify(txs));updateBadge()}
-function saveRules(){localStorage.setItem('fd_rules',JSON.stringify(learnedRules))}
+function fbSync(data){if(familyCode)getFamilyDoc().set(data,{merge:true}).catch(e=>console.error('Firebase sync error',e));}
+function saveCats(){localStorage.setItem('fd_cats',JSON.stringify(CATS));fbSync({cats:CATS});}
+function save(){localStorage.setItem('fd_txs',JSON.stringify(txs));updateBadge();fbSync({txs,rules:learnedRules,cats:CATS});}
+function saveRules(){localStorage.setItem('fd_rules',JSON.stringify(learnedRules));fbSync({rules:learnedRules});}
 function updateBadge(){
   const b=document.getElementById('tx-badge');
   const cs=document.getElementById('clear-section');
@@ -1396,11 +1463,16 @@ document.addEventListener('mousemove',e=>{if(_tt.style.display==='block'){_tt.st
 
 // ─── INIT ───────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
-  load();
-  updateBadge();
   document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
-  renderCatsList();
-  setTab(txs.length?'dashboard':'upload');
+  const savedCode=localStorage.getItem('fd_family_code');
+  if(savedCode){
+    connectFirebase(savedCode);
+  } else {
+    load();
+    updateBadge();
+    renderCatsList();
+    setTab(txs.length?'dashboard':'upload');
+  }
 });
 </script>
 </body>
