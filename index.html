@@ -416,6 +416,9 @@ function classify(desc){
   return 'outros';
 }
 
+const CARD_NAMES={'2413':'Helio','7299':'Malu'};
+function cardOwner(last4){return CARD_NAMES[last4]||`...${last4}`;}
+
 function cleanDesc(desc, cat){
   if(cat==='zelle_in'){
     const m=desc.match(/zelle payment from\s+([A-Za-z ]+?)(?:\s+for\s+|\s+conf#|\s*$)/i);
@@ -424,6 +427,10 @@ function cleanDesc(desc, cat){
   if(cat==='zelle'){
     const m=desc.match(/zelle payment to\s+([A-Za-z ]+?)(?:\s+Conf#|\s*$)/i);
     if(m){const name=m[1].trim().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');return 'Zelle para '+name;}
+  }
+  if(cat==='cartao'){
+    const m=desc.match(/(?:mobile banking payment to crd|online scheduled payment to acct#?)\s*(\d{4})/i);
+    if(m)return`Pagamento Cartão ${cardOwner(m[1])}`;
   }
   return desc;
 }
