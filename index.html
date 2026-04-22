@@ -428,12 +428,6 @@ function cleanDesc(desc, cat){
     const m=desc.match(/zelle payment to\s+([A-Za-z ]+?)(?:\s+Conf#|\s*$)/i);
     if(m){const name=m[1].trim().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');return 'Zelle para '+name;}
   }
-  if(cat==='cartao'){
-    const m1=desc.match(/mobile banking payment to crd\s*(\d{4})/i);
-    if(m1)return`Pagamento Cartão ${cardOwner(m1[1])}`;
-    const m2=desc.match(/online scheduled payment to acct#?\s*(\d{4})/i);
-    if(m2)return`Pagamento Cartão ${cardOwner(m2[1])}`;
-  }
   return desc;
 }
 
