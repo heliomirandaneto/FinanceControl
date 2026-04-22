@@ -835,7 +835,7 @@ function reclassifyAll(){
     if(t.override)return;
     const raw=t.rawDesc||t.desc;
     const newCat=classify(raw);
-    const newDesc=cleanDesc(raw,newCat);
+    const newDesc=t.descOverride||cleanDesc(raw,newCat);
     if(newCat!==t.cat||newDesc!==t.desc){t.cat=newCat;t.desc=newDesc;changed++;}
   });
   save();
@@ -1103,7 +1103,7 @@ function renderTx(){
         <span class="cursor-pointer hover:text-indigo-500 hover:underline" title="Clique para mudar o mês" onclick="editDate('${t.id}',this)">${t.date.split('-').reverse().join('/')}</span>
       </td>
       <td class="px-4 py-2.5 text-sm">
-        <span class="tip block truncate cursor-default" data-tip="${t.desc}${t.note?'\n\n📝 '+t.note:''}" style="max-width:260px">${t.desc}</span>
+        <span class="tip block truncate cursor-pointer hover:text-indigo-500 hover:underline${t.descOverride?' font-medium':''}" data-tip="${t.desc}${t.note?'\n\n📝 '+t.note:''}" style="max-width:260px" onclick="editDesc('${t.id}',this)" title="Clique para editar o nome">${t.desc}</span>
         ${t.note
           ? `<span class="block text-xs text-amber-500 italic truncate mt-0.5 cursor-pointer" style="max-width:260px" onclick="editNote('${t.id}',this)">${t.note}</span>`
           : `<button onclick="editNote('${t.id}',this)" class="hidden group-hover:block text-xs text-gray-400 hover:text-amber-500 mt-0.5 transition-colors">+ nota</button>`}
@@ -1134,6 +1134,24 @@ function sortTx(col){
   if(txSort.col===col)txSort.dir*=-1;
   else{txSort.col=col;txSort.dir=col==='amount'?-1:1;}
   txPage=0;renderTx();
+}
+
+function editDesc(id,el){
+  const t=txs.find(x=>x.id===id);
+  if(!t)return;
+  const input=document.createElement('input');
+  input.type='text';
+  input.value=t.desc;
+  input.className='border border-indigo-300 rounded px-2 py-0.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-400';
+  el.replaceWith(input);
+  input.focus();input.select();
+  function commit(){
+    const v=input.value.trim();
+    if(v&&v!==t.desc){t.desc=v;t.descOverride=v;save();}
+    renderTx();
+  }
+  input.addEventListener('blur',commit);
+  input.addEventListener('keydown',e=>{if(e.key==='Enter')commit();if(e.key==='Escape')renderTx();});
 }
 
 function editNote(id,el){
