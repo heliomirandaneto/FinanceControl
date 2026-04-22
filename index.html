@@ -927,10 +927,10 @@ function renderSourceFilter(){
   const bar=document.getElementById('source-filter-bar');
   if(sources.length<=1){bar.classList.add('hidden');return;}
   bar.classList.remove('hidden');
+  const cardNames={'card_2477':'💳 Helio','card_7299':'💳 Malu'};
   function sourceLabel(s){
     if(s==='bank')return'🏦 Conta Banco';
-    const last4=s.replace('card_','');
-    return`💳 Cartão ...${last4}`;
+    return cardNames[s]||`💳 Cartão ...${s.replace('card_','')}`;
   }
   const pills=document.getElementById('source-pills');
   const all=[''].concat(sources);
