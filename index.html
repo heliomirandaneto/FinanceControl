@@ -927,7 +927,7 @@ function renderSourceFilter(){
   const bar=document.getElementById('source-filter-bar');
   if(sources.length<=1){bar.classList.add('hidden');return;}
   bar.classList.remove('hidden');
-  const cardNames={'card_2477':'💳 Helio','card_7299':'💳 Malu'};
+  const cardNames={'card_2413':'💳 Helio','card_7299':'💳 Malu'};
   function sourceLabel(s){
     if(s==='bank')return'🏦 Conta Banco';
     return cardNames[s]||`💳 Cartão ...${s.replace('card_','')}`;
