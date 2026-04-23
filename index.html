@@ -428,11 +428,6 @@ function cleanDesc(desc, cat){
     const m=desc.match(/zelle payment to\s+([A-Za-z ]+?)(?:\s+Conf#|\s*$)/i);
     if(m){const name=m[1].trim().split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');return 'Zelle para '+name;}
   }
-  if(cat==='cartao'){
-    const dl=desc.toLowerCase();
-    if(dl.includes('7299'))return'Pagamento Cartão Malu';
-    if(dl.includes('2413'))return'Pagamento Cartão Helio';
-  }
   return desc;
 }
 
